@@ -14,6 +14,10 @@ export default function NetworkGraph({ graphData, topNode, selectedNodeId, setSe
     if (!graphData?.nodes?.length) return { nodes: [], links: [] }
 
     const links = graphData.links || []
+    if (!links.length) {
+      return { nodes: graphData.nodes, links: [] }
+    }
+
     const minTs = Math.min(...links.map((l) => l.first_seen_ts || 0))
     const maxTs = Math.max(...links.map((l) => l.first_seen_ts || 0))
     const scrubTs = minTs + ((maxTs - minTs) * scrubPercent) / 100

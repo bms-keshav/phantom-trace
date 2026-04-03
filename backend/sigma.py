@@ -2,9 +2,9 @@ from __future__ import annotations
 
 
 def generate_sigma_rule(node_data: dict) -> str:
-    node = node_data.get("node", "unknown")
+    node = str(node_data.get("node", "unknown")).replace("'", "''")
     confidence = node_data.get("confidence_pct", 0)
-    top_ua = node_data.get("fingerprint_detail", {}).get("top_ua", "")
+    top_ua = str(node_data.get("fingerprint_detail", {}).get("top_ua", "")).replace("'", "''")
     period = node_data.get("beacon_detail", {}).get("dominant_period_sec")
     iat_std = node_data.get("beacon_detail", {}).get("iat_std")
 

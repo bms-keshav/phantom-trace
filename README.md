@@ -45,7 +45,17 @@ phantom-trace/
 │   ├── sample_logs.json
 │   └── field_map.json
 ├── docs/
-│   └── architecture.md
+│   ├── architecture.md
+│   ├── final_readiness_report.md
+│   └── submission_checklist.md
+├── scripts/
+│   ├── check_submission.py
+│   ├── run_backend.ps1
+│   ├── run_frontend.ps1
+│   ├── setup_backend.ps1
+│   └── smoke_test.py
+├── PUSH_TO_GITHUB.md
+├── RUNNING.md
 ├── README.md
 └── requirements.txt
 ```
@@ -121,6 +131,15 @@ Then open the Vite URL (typically `http://localhost:5173`), upload `data/sample_
 - `GET /api/node/{ip}/sigma`
 - `GET /api/node/{ip}/dossier`
 
+`/api/analyze` returns:
+
+- `top_node`
+- `ranked_nodes` (top 10)
+- `all_nodes` (full scored list)
+- `graph`
+- `timeline`
+- `summary_stats`
+
 ## Demo Flow (3 minutes)
 
 1. Upload logs and show network graph explosion.
@@ -133,17 +152,16 @@ Then open the Vite URL (typically `http://localhost:5173`), upload `data/sample_
 
 AI tools were used in the following ways:
 
-1. **Explanation generation** (UI feature): The "Why this node?" explanation panel
-	uses an LLM prompt to translate the numeric score breakdown into a plain-English
-	forensic summary. The underlying detection is entirely deterministic - AI only
-	translates the output, it does not influence the detection logic.
+1. **Code assistance**: Used for boilerplate generation (FastAPI routes, React
+   component scaffolding). All core algorithms (FFT beaconing, scoring formula,
+   fingerprinting) were written and validated manually.
 
-2. **Code assistance**: Used for boilerplate generation (FastAPI routes, React
-	component scaffolding). All core algorithms (FFT beaconing, scoring formula,
-	fingerprinting) were written and validated manually.
+2. **Synthetic data generation**: Used to generate realistic network log patterns
+   including the injected C2 node behavioral profile.
 
-3. **Synthetic data generation**: Used to generate realistic network log patterns
-	including the injected C2 node behavioral profile.
+3. **Explanation drafting for documentation/demo script**: AI was used to help
+   phrase human-readable narrative for presentation and reporting. Detection logic
+   and scoring are deterministic and do not call any runtime LLM.
 
 Architecture decision: we deliberately chose deterministic math over ML models
 because explainability is a first-class requirement in threat attribution.

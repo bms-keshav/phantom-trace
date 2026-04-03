@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import Any
 
 import pandas as pd
@@ -115,6 +114,7 @@ async def analyze(file: UploadFile = File(...)):
     return {
         "top_node": scores[0],
         "ranked_nodes": scores[:10],
+        "all_nodes": scores,
         "graph": _serialize_graph(g, scores),
         "timeline": _build_timeline(df),
         "summary_stats": {

@@ -49,7 +49,7 @@ def generate_logs(total_entries: int = 5000, seed: int = 42) -> list[dict]:
     # Build C2 traffic: near-periodic requests every ~12 seconds with very low variance.
     c2_events = []
     c2_count = max(300, int(total_entries * 0.2))
-    t = start + timedelta(seconds=10)
+    t = start + timedelta(seconds=1)
     ordered_headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64)",
         "Accept": "application/json",
@@ -79,7 +79,7 @@ def generate_logs(total_entries: int = 5000, seed: int = 42) -> list[dict]:
     # Background traffic: noisier and less regular.
     normal_events = []
     normal_count = total_entries - len(c2_events)
-    current = start
+    current = start + timedelta(seconds=40)
     for _ in range(normal_count):
         current += timedelta(seconds=random.uniform(0.2, 3.5))
         src = random.choice(non_c2_nodes)

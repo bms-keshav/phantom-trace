@@ -1,3 +1,4 @@
+import ast
 import hashlib
 import io
 import json
@@ -111,7 +112,11 @@ def _coerce_headers(value: Any) -> dict:
             loaded = json.loads(s)
             return loaded if isinstance(loaded, dict) else {}
         except json.JSONDecodeError:
-            return {}
+            try:
+                loaded = ast.literal_eval(s)
+                return loaded if isinstance(loaded, dict) else {}
+            except (ValueError, SyntaxError):
+                return {}
     return {}
 
 

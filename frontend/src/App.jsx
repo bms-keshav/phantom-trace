@@ -14,13 +14,14 @@ export default function App() {
   const [scrub, setScrub] = useState(100)
 
   const ranked = analysis?.ranked_nodes ?? []
+  const allNodes = analysis?.all_nodes ?? ranked
   const topNode = analysis?.top_node?.node ?? ''
 
   const selectedNode = useMemo(() => {
     if (!analysis) return null
     const id = selectedNodeId || topNode
-    return ranked.find((n) => n.node === id) || analysis.top_node
-  }, [analysis, ranked, selectedNodeId, topNode])
+    return allNodes.find((n) => n.node === id) || analysis.top_node
+  }, [analysis, allNodes, selectedNodeId, topNode])
 
   async function handleUpload(file) {
     if (!file) return
