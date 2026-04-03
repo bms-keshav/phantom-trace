@@ -43,10 +43,16 @@ def main() -> None:
     print("health:", health)
 
     result = _post_analyze(sample)
+    analysis_id = result.get("analysis_id")
+    if not analysis_id:
+        raise SystemExit("Missing analysis_id in /api/analyze response")
+
     top = result["top_node"]
     print("top_node:", top["node"], "score:", top["final_score"], "confidence:", top["confidence_pct"])
 
-    sigma = _get(f"http://127.0.0.1:8000/api/node/{top['node']}/sigma")
+    sigma = _get(
+        f"http://127.0.0.1:8000/api/node/{top['node']}/sigma?analysis_id={analysis_id}"
+    )
     print("sigma_ok:", "title:" in sigma and "detection:" in sigma)
 
     print("summary:", result["summary_stats"])

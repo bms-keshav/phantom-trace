@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import pandas as pd
@@ -8,12 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, Response
 
 try:
+    from .analysis_store import create_analysis_record, get_analysis_record
     from .dossier import generate_dossier_pdf
     from .graph import build_graph, compute_graph_metrics
     from .parser import parse_logs
     from .scoring import score_all_nodes
     from .sigma import generate_sigma_rule
 except ImportError:
+    from analysis_store import create_analysis_record, get_analysis_record
     from dossier import generate_dossier_pdf
     from graph import build_graph, compute_graph_metrics
     from parser import parse_logs
@@ -28,12 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-LAST_ANALYSIS: dict[str, Any] = {
-    "scores": [],
-    "df": None,
-    "graph": None,
-}
 
 
 def _build_timeline(df: pd.DataFrame) -> list[dict]:
@@ -84,6 +81,51 @@ def _serialize_graph(g, scores: list[dict]) -> dict:
     return {"nodes": nodes, "links": links}
 
 
+def _build_top_targets(df: pd.DataFrame) -> dict[str, list[str]]:
+    top_targets = {}
+    for src, src_group in df.groupby("src_ip", sort=False):
+        targets = src_group["dst_ip"].value_counts().head(5).index.tolist()
+        top_targets[str(src)] = [str(t) for t in targets]
+    return top_targets
+
+
+def _run_analysis_pipeline(content: bytes) -> dict[str, Any]:
+    df = parse_logs(content)
+    if df.empty:
+        raise ValueError("No valid log rows parsed")
+
+    g = build_graph(df)
+    metrics = compute_graph_metrics(g)
+    scores = score_all_nodes(g, df, metrics)
+
+    if not scores:
+        raise ValueError("Not enough data to score nodes")
+
+    summary_stats = {
+        "total_nodes": g.number_of_nodes(),
+        "total_edges": g.number_of_edges(),
+        "total_requests": int(len(df)),
+    }
+
+    analysis_id = create_analysis_record(
+        {
+            "scores": scores,
+            "top_targets_by_node": _build_top_targets(df),
+            "summary_stats": summary_stats,
+        }
+    )
+
+    return {
+        "analysis_id": analysis_id,
+        "top_node": scores[0],
+        "ranked_nodes": scores[:10],
+        "all_nodes": scores,
+        "graph": _serialize_graph(g, scores),
+        "timeline": _build_timeline(df),
+        "summary_stats": summary_stats,
+    }
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -93,64 +135,44 @@ def health() -> dict:
 async def analyze(file: UploadFile = File(...)):
     try:
         content = await file.read()
-        df = parse_logs(content)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Failed to parse logs: {exc}") from exc
 
-    if df.empty:
-        raise HTTPException(status_code=400, detail="No valid log rows parsed")
-
-    g = build_graph(df)
-    metrics = compute_graph_metrics(g)
-    scores = score_all_nodes(g, df, metrics)
-
-    if not scores:
-        raise HTTPException(status_code=400, detail="Not enough data to score nodes")
-
-    LAST_ANALYSIS["scores"] = scores
-    LAST_ANALYSIS["df"] = df
-    LAST_ANALYSIS["graph"] = g
-
-    return {
-        "top_node": scores[0],
-        "ranked_nodes": scores[:10],
-        "all_nodes": scores,
-        "graph": _serialize_graph(g, scores),
-        "timeline": _build_timeline(df),
-        "summary_stats": {
-            "total_nodes": g.number_of_nodes(),
-            "total_edges": g.number_of_edges(),
-            "total_requests": int(len(df)),
-        },
-    }
+    try:
+        return await asyncio.to_thread(_run_analysis_pipeline, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}") from exc
 
 
 @app.get("/api/node/{ip}/sigma")
-def get_sigma_rule(ip: str):
-    scores = LAST_ANALYSIS.get("scores", [])
+def get_sigma_rule(ip: str, analysis_id: str):
+    record = get_analysis_record(analysis_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Analysis not found or expired")
+
+    scores = record.get("scores", [])
     node_data = next((s for s in scores if s.get("node") == ip), None)
     if node_data is None:
-        raise HTTPException(status_code=404, detail="Node not found in latest analysis")
+        raise HTTPException(status_code=404, detail="Node not found in requested analysis")
 
     rule = generate_sigma_rule(node_data)
     return PlainTextResponse(content=rule)
 
 
 @app.get("/api/node/{ip}/dossier")
-def get_dossier(ip: str):
-    scores = LAST_ANALYSIS.get("scores", [])
-    df = LAST_ANALYSIS.get("df")
+def get_dossier(ip: str, analysis_id: str):
+    record = get_analysis_record(analysis_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Analysis not found or expired")
 
-    if df is None:
-        raise HTTPException(status_code=404, detail="No analysis found. Run /api/analyze first.")
-
+    scores = record.get("scores", [])
     node_data = next((s for s in scores if s.get("node") == ip), None)
     if node_data is None:
-        raise HTTPException(status_code=404, detail="Node not found in latest analysis")
+        raise HTTPException(status_code=404, detail="Node not found in requested analysis")
 
-    target_counts = (
-        df[df["src_ip"] == ip]["dst_ip"].value_counts().head(5).index.tolist()
-    )
+    target_counts = record.get("top_targets_by_node", {}).get(ip, [])
     sigma_rule = generate_sigma_rule(node_data)
     pdf_bytes = generate_dossier_pdf(node_data, sigma_rule, target_counts)
 

@@ -16,6 +16,7 @@ It uses deterministic scoring (graph centrality + timing beaconing + metadata fi
 phantom-trace/
 ├── backend/
 │   ├── __init__.py
+│   ├── analysis_store.py
 │   ├── main.py
 │   ├── parser.py
 │   ├── graph.py
@@ -128,11 +129,12 @@ Then open the Vite URL (typically `http://localhost:5173`), upload `data/sample_
 
 - `GET /api/health`
 - `POST /api/analyze` (multipart upload)
-- `GET /api/node/{ip}/sigma`
-- `GET /api/node/{ip}/dossier`
+- `GET /api/node/{ip}/sigma?analysis_id=<id>`
+- `GET /api/node/{ip}/dossier?analysis_id=<id>`
 
 `/api/analyze` returns:
 
+- `analysis_id` (session-safe key for follow-up Sigma/PDF requests)
 - `top_node`
 - `ranked_nodes` (top 10)
 - `all_nodes` (full scored list)

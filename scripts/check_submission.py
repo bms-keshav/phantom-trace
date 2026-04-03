@@ -5,6 +5,7 @@ from pathlib import Path
 
 REQUIRED_PATHS = [
     "backend/main.py",
+    "backend/analysis_store.py",
     "backend/parser.py",
     "backend/graph.py",
     "backend/scoring.py",

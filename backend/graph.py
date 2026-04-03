@@ -7,17 +7,31 @@ import pandas as pd
 def build_graph(df: pd.DataFrame) -> nx.DiGraph:
     g = nx.DiGraph()
 
-    for (src, dst), group in df.groupby(["src_ip", "dst_ip"]):
+    edge_stats = (
+        df.groupby(["src_ip", "dst_ip"], sort=False)
+        .agg(
+            weight=("timestamp_epoch_s", "size"),
+            avg_latency=("latency_ms", "mean"),
+            timestamps=("timestamp_epoch_s", list),
+            first_seen_ts=("timestamp_epoch_s", "min"),
+            last_seen_ts=("timestamp_epoch_s", "max"),
+            header_sigs=("header_signature", list),
+            ua_hashes=("ua_hash", list),
+        )
+        .reset_index()
+    )
+
+    for row in edge_stats.itertuples(index=False):
         g.add_edge(
-            src,
-            dst,
-            weight=int(len(group)),
-            avg_latency=float(group["latency_ms"].mean()),
-            timestamps=group["timestamp_epoch_s"].tolist(),
-            first_seen_ts=float(group["timestamp_epoch_s"].min()),
-            last_seen_ts=float(group["timestamp_epoch_s"].max()),
-            header_sigs=group["header_signature"].tolist(),
-            ua_hashes=group["ua_hash"].tolist(),
+            row.src_ip,
+            row.dst_ip,
+            weight=int(row.weight),
+            avg_latency=float(row.avg_latency),
+            timestamps=row.timestamps,
+            first_seen_ts=float(row.first_seen_ts),
+            last_seen_ts=float(row.last_seen_ts),
+            header_sigs=row.header_sigs,
+            ua_hashes=row.ua_hashes,
         )
 
     return g
@@ -33,7 +47,10 @@ def compute_graph_metrics(g: nx.DiGraph) -> dict:
         }
 
     pagerank = nx.pagerank(g, weight="weight")
-    betweenness = nx.betweenness_centrality(g, weight="weight")
+    if g.number_of_nodes() > 120:
+        betweenness = nx.betweenness_centrality(g, weight="weight", k=100, seed=42)
+    else:
+        betweenness = nx.betweenness_centrality(g, weight="weight")
     out_degree = dict(g.out_degree(weight="weight"))
 
     try:

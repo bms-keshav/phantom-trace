@@ -5,6 +5,9 @@ Date: 2026-04-03
 ## Overall Status
 
 - Engineering implementation: PASS
+- Concurrency safety hardening: PASS (`analysis_id`-keyed analysis records)
+- Async event-loop safety: PASS (heavy analysis offloaded using `asyncio.to_thread`)
+- Large-graph performance hardening: PASS (approximated betweenness, grouped scoring)
 - Frontend build: PASS
 - Dataset ground truth constraints: PASS
 - Submission structure/documents: PASS
@@ -35,4 +38,4 @@ Mitigation:
 
 ## Push Readiness
 
-Project is ready to push to GitHub once repository URL is provided.
+Project is pushed and tracking the canonical repository URL.

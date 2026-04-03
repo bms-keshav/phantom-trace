@@ -18,6 +18,9 @@
 
 - [x] Modular backend architecture
 - [x] Frontend componentized layout
+- [x] Session-isolated analysis storage (`analysis_id` keyed)
+- [x] Non-blocking analysis route (heavy compute offloaded from event loop)
+- [x] Graph/scoring performance optimizations for larger datasets
 - [x] Parser supports JSON/NDJSON/CSV
 - [x] Field mapping config for event-day schema drift
 - [x] Sample synthetic dataset with embedded ground truth

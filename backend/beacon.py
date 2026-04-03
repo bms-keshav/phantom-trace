@@ -19,7 +19,7 @@ def compute_beacon_score(timestamps: list[float]) -> dict:
 
     sorted_ts = np.array(sorted(timestamps), dtype=float)
     iats = np.diff(sorted_ts)
-    iats = iats[iats > 0]
+    iats = np.where(iats <= 0, 1e-4, iats)
 
     if len(iats) < 8:
         return {

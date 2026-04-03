@@ -100,7 +100,7 @@ export default function App() {
                 <ScoreRadar node={selectedNode} />
               </div>
               <div className="mt-4">
-                <ThreatDossier node={selectedNode} />
+                <ThreatDossier node={selectedNode} analysisId={analysis?.analysis_id} />
               </div>
             </div>
 

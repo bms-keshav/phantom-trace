@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Iterable
-
 import networkx as nx
 import pandas as pd
 
@@ -32,14 +30,13 @@ def _normalize_value(value: float, lo: float, hi: float) -> float:
 
 def score_all_nodes(g: nx.DiGraph, df: pd.DataFrame, graph_metrics: dict) -> list[dict]:
     results = []
+    grouped_by_src = {src: grp for src, grp in df.groupby("src_ip", sort=False)}
 
     pagerank_n = _normalize_map(graph_metrics.get("pagerank", {}))
     betweenness_n = _normalize_map(graph_metrics.get("betweenness", {}))
     eigenvector_n = _normalize_map(graph_metrics.get("eigenvector", {}))
 
-    request_counts = (
-        df.groupby("src_ip").size().to_dict() if not df.empty else {}
-    )
+    request_counts = {src: int(len(grp)) for src, grp in grouped_by_src.items()}
     if request_counts:
         rc_lo, rc_hi = min(request_counts.values()), max(request_counts.values())
     else:
@@ -48,8 +45,8 @@ def score_all_nodes(g: nx.DiGraph, df: pd.DataFrame, graph_metrics: dict) -> lis
     total_nodes = max(g.number_of_nodes(), 1)
 
     for node in g.nodes():
-        node_df = df[df["src_ip"] == node]
-        if len(node_df) < 3:
+        node_df = grouped_by_src.get(node)
+        if node_df is None or len(node_df) < 3:
             continue
 
         centrality = (
