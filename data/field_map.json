@@ -1,0 +1,11 @@
+{
+  "timestamp": ["timestamp", "time", "ts", "@timestamp"],
+  "src_ip": ["src_ip", "source_ip", "src", "client_ip", "source"],
+  "dst_ip": ["dst_ip", "destination_ip", "dst", "server_ip", "destination"],
+  "endpoint": ["endpoint", "path", "uri", "url"],
+  "method": ["method", "http_method", "verb"],
+  "headers": ["headers", "http_headers", "request_headers"],
+  "status_code": ["status_code", "status", "response_code", "http_status"],
+  "latency_ms": ["latency_ms", "latency", "response_time_ms", "duration_ms"],
+  "payload_size": ["payload_size", "bytes", "size", "response_size"]
+}
